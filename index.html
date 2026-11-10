@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f3d5e">
+<title>مباشرة الطلبة المقبولين — كلية علوم الحاسوب والرياضيات</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="config.js"></script>
+<style>
+  :root{
+    --navy:#0f3d5e; --navy2:#1a5a85; --ink:#14212b; --muted:#6b7a86; --line:#e3e8ed;
+    --bg:#f3f6f9; --card:#fff; --ok:#14935b; --okbg:#e7f6ee; --warn:#c77700; --warnbg:#fff4e0;
+    --bad:#c43232; --badbg:#fdeaea; --r:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:'Cairo',Tahoma,sans-serif;font-size:16px}
+  body{min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
+  button{font-family:inherit;cursor:pointer;border:0}
+  input,select{font-family:inherit;font-size:16px}
+  .hidden{display:none!important}
+
+  header{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:14px 16px 18px;
+    position:sticky;top:0;z-index:20;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+  .hrow{display:flex;align-items:center;gap:10px;max-width:720px;margin:auto}
+  .htitle{flex:1;min-width:0}
+  .htitle h1{font-size:17px;font-weight:800;line-height:1.3}
+  .htitle p{font-size:12.5px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .iconbtn{background:rgba(255,255,255,.15);color:#fff;border-radius:10px;padding:7px 11px;font-size:13px;font-weight:600}
+
+  main{max-width:720px;margin:auto;padding:14px}
+  .card{background:var(--card);border-radius:var(--r);box-shadow:0 1px 3px rgba(16,40,60,.08);padding:16px;margin-bottom:14px}
+
+  /* login */
+  .login{max-width:420px;margin:30px auto}
+  .login h2{font-size:20px;margin-bottom:4px}
+  .login .sub{color:var(--muted);font-size:14px;margin-bottom:18px}
+  label{display:block;font-size:14px;font-weight:600;margin:12px 0 6px}
+  select,input[type=text],input[type=password],input[type=tel]{width:100%;padding:12px 14px;border:1.5px solid var(--line);
+    border-radius:12px;background:#fff;outline:none}
+  select:focus,input:focus{border-color:var(--navy2)}
+  .btn{width:100%;padding:13px;border-radius:12px;font-size:16px;font-weight:700;margin-top:18px;background:var(--navy);color:#fff}
+  .btn:disabled{opacity:.6}
+  .err{color:var(--bad);font-size:14px;margin-top:10px;min-height:20px}
+
+  /* stats */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+  .stat{background:#fff;border-radius:14px;padding:10px 6px;text-align:center;box-shadow:0 1px 3px rgba(16,40,60,.08)}
+  .stat b{display:block;font-size:24px;font-weight:800;line-height:1.2}
+  .stat span{font-size:12px;color:var(--muted)}
+  .stat.ok b{color:var(--ok)} .stat.rem b{color:var(--warn)}
+  .bar{height:6px;background:var(--line);border-radius:6px;overflow:hidden;margin:-4px 0 14px}
+  .bar i{display:block;height:100%;background:var(--ok);width:0;transition:width .4s}
+
+  /* scanner */
+  .scanwrap{position:relative;border-radius:14px;overflow:hidden;background:#0b1720;aspect-ratio:4/3}
+  #reader{width:100%;height:100%}
+  #reader video{object-fit:cover!important;width:100%!important;height:100%!important}
+  .scanidle{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    color:#cfe0ec;gap:12px;text-align:center;padding:20px}
+  .scanidle .big{font-size:46px}
+  .startbtn{background:#fff;color:var(--navy);padding:11px 22px;border-radius:12px;font-weight:800;font-size:16px}
+  .scanbar{display:flex;gap:8px;margin-top:10px}
+  .scanbar input{flex:1}
+  .scanbar button{padding:0 16px;border-radius:12px;background:var(--navy2);color:#fff;font-weight:700}
+  .hint{font-size:12.5px;color:var(--muted);margin-top:8px;text-align:center}
+
+  /* result overlay */
+  .overlay{position:fixed;inset:0;background:rgba(10,25,38,.55);z-index:50;display:flex;align-items:flex-end;justify-content:center;
+    animation:fade .15s}
+  @keyframes fade{from{opacity:0}}
+  .sheet{background:#fff;width:100%;max-width:520px;border-radius:22px 22px 0 0;padding:22px 20px calc(20px + env(safe-area-inset-bottom));
+    text-align:center;animation:up .22s ease-out}
+  @keyframes up{from{transform:translateY(40px);opacity:.4}}
+  .mark{width:84px;height:84px;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center}
+  .mark svg{width:46px;height:46px}
+  .mark.ok{background:var(--okbg);color:var(--ok)} .mark.warn{background:var(--warnbg);color:var(--warn)} .mark.bad{background:var(--badbg);color:var(--bad)}
+  .sname{font-size:23px;font-weight:800;line-height:1.4}
+  .smeta{color:var(--muted);font-size:14px;margin-top:4px}
+  .smsg{margin-top:12px;font-size:15px;font-weight:700;padding:9px 12px;border-radius:10px}
+  .smsg.ok{background:var(--okbg);color:var(--ok)} .smsg.warn{background:var(--warnbg);color:var(--warn)} .smsg.bad{background:var(--badbg);color:var(--bad)}
+  .acts{display:flex;gap:10px;margin-top:18px}
+  .acts button{flex:1;padding:14px;border-radius:14px;font-size:17px;font-weight:800}
+  .bconfirm{background:var(--ok);color:#fff} .bcancel{background:#eef2f5;color:var(--ink)}
+  .bconfirm:disabled{opacity:.6}
+
+  /* lists */
+  .tabs{display:flex;background:#e8eef3;border-radius:12px;padding:4px;margin-bottom:12px}
+  .tabs button{flex:1;padding:9px;border-radius:9px;background:transparent;font-weight:700;color:var(--muted);font-size:14.5px}
+  .tabs button.on{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .search{margin-bottom:10px}
+  .list{list-style:none}
+  .list li{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid var(--line)}
+  .list li:last-child{border-bottom:0}
+  .num{min-width:34px;height:34px;border-radius:10px;background:#eef3f7;color:var(--navy);font-weight:700;font-size:13px;
+    display:flex;align-items:center;justify-content:center;padding:0 6px}
+  .list .nm{flex:1;font-weight:600;font-size:15px}
+  .list .tm{font-size:12px;color:var(--muted);white-space:nowrap}
+  .chk{color:var(--ok);font-weight:800}
+  .empty{color:var(--muted);text-align:center;padding:22px 0;font-size:14px}
+  .new{animation:flash 1.6s}
+  @keyframes flash{0%{background:var(--okbg)}100%{background:transparent}}
+
+  .toast{position:fixed;top:84px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;
+    border-radius:12px;font-size:14px;z-index:60;box-shadow:0 4px 18px rgba(0,0,0,.2);max-width:90%}
+  footer{text-align:center;color:var(--muted);font-size:12px;padding:16px 0 26px;letter-spacing:.3px}
+  .spinner{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;
+    display:inline-block;animation:spin .8s linear infinite;vertical-align:middle}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <div class="htitle">
+      <h1>مباشرة الطلبة المقبولين</h1>
+      <p id="hsub">كلية علوم الحاسوب والرياضيات</p>
+    </div>
+    <button class="iconbtn hidden" id="btnRefresh" title="تحديث">↻ تحديث</button>
+    <button class="iconbtn hidden" id="btnLogout">خروج</button>
+  </div>
+</header>
+
+<main>
+  <!-- ========== تسجيل الدخول ========== -->
+  <section id="vLogin" class="login card">
+    <h2>دخول مقرر القسم</h2>
+    <p class="sub">اختر القسم وأدخل الرمز الخاص به</p>
+    <label for="selDept">القسم</label>
+    <select id="selDept"><option value="">جارِ تحميل الأقسام…</option></select>
+    <label for="inPin">الرمز السري</label>
+    <input id="inPin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••">
+    <button class="btn" id="btnLogin">دخول</button>
+    <div class="err" id="loginErr"></div>
+  </section>
+
+  <!-- ========== الشاشة الرئيسية ========== -->
+  <section id="vMain" class="hidden">
+    <div class="stats">
+      <div class="stat"><b id="stTotal">0</b><span>المقبولون</span></div>
+      <div class="stat ok"><b id="stDone">0</b><span>باشروا</span></div>
+      <div class="stat rem"><b id="stRem">0</b><span>المتبقون</span></div>
+    </div>
+    <div class="bar"><i id="prog"></i></div>
+
+    <div class="card">
+      <div class="scanwrap">
+        <div id="reader"></div>
+        <div class="scanidle" id="scanIdle">
+          <div class="big">📷</div>
+          <div>اضغط لتشغيل الكاميرا وقراءة باركود الطالب</div>
+          <button class="startbtn" id="btnStart">تشغيل الماسح</button>
+        </div>
+      </div>
+      <div class="scanbar">
+        <input id="inManual" type="text" inputmode="numeric" placeholder="أو أدخل رقم الطالب يدوياً">
+        <button id="btnManual">بحث</button>
+      </div>
+      <p class="hint">يدعم الباركود والـ QR · يمكن أيضاً استخدام قارئ باركود موصول بالحاسبة</p>
+    </div>
+
+    <div class="card">
+      <div class="tabs">
+        <button class="on" data-tab="done">الطلبة المباشرون</button>
+        <button data-tab="rem">لم يباشروا بعد</button>
+      </div>
+      <input class="search" id="inSearch" type="text" placeholder="بحث بالاسم أو الرقم…">
+      <ul class="list" id="list"></ul>
+    </div>
+  </section>
+
+  <footer>designed by OMAR INAAM</footer>
+</main>
+
+<!-- ========== نافذة النتيجة ========== -->
+<div class="overlay hidden" id="ovl">
+  <div class="sheet">
+    <div class="mark" id="rMark"></div>
+    <div class="sname" id="rName"></div>
+    <div class="smeta" id="rMeta"></div>
+    <div class="smsg" id="rMsg"></div>
+    <div class="acts">
+      <button class="bconfirm" id="btnConfirm">تأكيد المباشرة</button>
+      <button class="bcancel" id="btnClose">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== الحالة ===================== */
+const S = { dept:'', pin:'', students:[], byId:new Map(), tab:'done', current:null, busy:false, lastCode:'', lastAt:0 };
+let scanner = null, scanning = false;
+const $ = id => document.getElementById(id);
+
+const ICON = {
+  ok:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  warn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 7v6M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>',
+  bad:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+};
+
+/* ===================== أدوات ===================== */
+function store(k,v){ try{ v===null?localStorage.removeItem(k):localStorage.setItem(k,v) }catch(e){} }
+function load(k){ try{ return localStorage.getItem(k) }catch(e){ return null } }
+function normId(s){ return String(s||'').trim().replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/^0+(?=\d)/,'') }
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+function toast(msg,ms=2600){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),ms) }
+
+async function api(params){
+  if(!API_URL || API_URL.indexOf('http')!==0) throw new Error('لم يتم ضبط رابط Apps Script في ملف config.js');
+  const r = await fetch(API_URL+'?'+new URLSearchParams(params), {redirect:'follow'});
+  const j = await r.json();
+  if(!j.ok && j.error) { const e=new Error(j.error); e.data=j; throw e; }
+  return j;
+}
+
+function beep(ok){
+  try{
+    const c=new (window.AudioContext||window.webkitAudioContext)(), o=c.createOscillator(), g=c.createGain();
+    o.frequency.value = ok?880:320; o.connect(g); g.connect(c.destination); g.gain.value=.12;
+    o.start(); o.stop(c.currentTime+(ok?.12:.3));
+  }catch(e){}
+  try{ navigator.vibrate && navigator.vibrate(ok?80:[60,60,60]) }catch(e){}
+}
+
+/* ===================== الدخول ===================== */
+async function loadDepts(){
+  const sel=$('selDept');
+  try{
+    const j = await api({action:'depts'});
+    sel.innerHTML = '<option value="">— اختر القسم —</option>' + j.depts.map(d=>`<option>${esc(d)}</option>`).join('');
+    const saved = load('mb_dept'); if(saved) sel.value = saved;
+  }catch(e){
+    sel.innerHTML = '<option value="">تعذّر تحميل الأقسام</option>';
+    $('loginErr').textContent = e.message;
+  }
+}
+
+async function login(dept,pin,silent){
+  const b=$('btnLogin'); b.disabled=true; b.innerHTML='<span class="spinner"></span>';
+  $('loginErr').textContent='';
+  try{
+    const j = await api({action:'login',dept,pin});
+    S.dept=dept; S.pin=pin; setStudents(j.students);
+    store('mb_dept',dept); store('mb_pin',pin);
+    $('vLogin').classList.add('hidden'); $('vMain').classList.remove('hidden');
+    $('btnLogout').classList.remove('hidden'); $('btnRefresh').classList.remove('hidden');
+    $('hsub').textContent = 'قسم ' + dept;
+  }catch(e){
+    if(!silent) $('loginErr').textContent = e.message;
+    store('mb_pin',null);
+  }finally{ b.disabled=false; b.textContent='دخول' }
+}
+
+function logout(){
+  stopScan(); store('mb_pin',null); S.dept=''; S.pin=''; S.students=[];
+  $('vMain').classList.add('hidden'); $('vLogin').classList.remove('hidden');
+  $('btnLogout').classList.add('hidden'); $('btnRefresh').classList.add('hidden');
+  $('hsub').textContent='كلية علوم الحاسوب والرياضيات'; $('inPin').value='';
+}
+
+/* ===================== البيانات ===================== */
+function setStudents(list){
+  S.students = list; S.byId = new Map(list.map(s=>[normId(s.id),s])); render();
+}
+async function refresh(quiet){
+  if(!S.dept) return;
+  try{ const j=await api({action:'list',dept:S.dept,pin:S.pin}); setStudents(j.students); if(!quiet) toast('تم التحديث') }
+  catch(e){ if(!quiet) toast(e.message) }
+}
+
+function render(highlightId){
+  const tot=S.students.length, done=S.students.filter(s=>s.done).length;
+  $('stTotal').textContent=tot; $('stDone').textContent=done; $('stRem').textContent=tot-done;
+  $('prog').style.width = tot? (done/tot*100)+'%' : '0';
+  const q = $('inSearch').value.trim();
+  let arr = S.students.filter(s => S.tab==='done' ? s.done : !s.done);
+  if(q) arr = arr.filter(s => s.name.includes(q) || String(s.id).includes(q));
+  if(S.tab==='done') arr.sort((a,b)=> (b.time||'').localeCompare(a.time||''));
+  else arr.sort((a,b)=> (+a.id||0)-(+b.id||0));
+  $('list').innerHTML = arr.length ? arr.map(s=>`
+    <li class="${highlightId && normId(s.id)===normId(highlightId)?'new':''}">
+      <span class="num">${esc(s.id)}</span>
+      <span class="nm">${esc(s.name)}</span>
+      ${s.done?`<span class="tm">${esc(s.time||'')}</span><span class="chk">✔</span>`:''}
+    </li>`).join('')
+    : `<li class="empty">${S.tab==='done'?'لم يباشر أي طالب بعد':'جميع الطلبة باشروا 🎉'}</li>`;
+}
+
+/* ===================== قراءة الكود ===================== */
+// يستخرج رقم الطالب من محتوى الباركود (رقم فقط، أو نص يحتوي الرقم مع بيانات أخرى)
+function candidates(text){
+  const t=String(text||'').trim(); const out=[t];
+  t.split(/[\s|,;:\/\\\-_#\n\r\t]+/).forEach(p=>p&&out.push(p));
+  (t.match(/[0-9٠-٩]+/g)||[]).forEach(n=>out.push(n));
+  return [...new Set(out.map(normId).filter(Boolean))];
+}
+
+async function handleCode(text){
+  if(S.busy || !$('ovl').classList.contains('hidden')) return;
+  const now=Date.now();
+  if(text===S.lastCode && now-S.lastAt<2500) return;
+  S.lastCode=text; S.lastAt=now;
+
+  const cands=candidates(text);
+  let st=null; for(const c of cands){ if(S.byId.has(c)){ st=S.byId.get(c); break } }
+  pauseScan();
+
+  if(st){
+    if(st.done) return showResult('warn', st.name, 'رقم '+st.id, 'باشر مسبقاً بتاريخ '+(st.time||''), null);
+    beep(true);
+    return showResult('ok', st.name, 'رقم '+st.id+' · قسم '+S.dept, 'الطالب مقبول في قسمكم', st);
+  }
+  // ليس في قائمة القسم — نسأل الخادم عن قسمه
+  S.busy=true;
+  try{
+    let found=null;
+    for(const c of cands.slice(0,4)){
+      const j=await api({action:'lookup',dept:S.dept,pin:S.pin,id:c});
+      if(j.found){ found=j.student; break }
+    }
+    beep(false);
+    if(found) showResult('bad', found.name, 'رقم '+found.id, 'هذا الطالب مقبول في قسم: '+found.dept, null);
+    else showResult('bad', 'غير موجود', 'المحتوى المقروء: '+String(text).slice(0,40), 'لا يوجد طالب بهذا الرقم في قائمة المسجلين', null);
+  }catch(e){ showResult('bad','خطأ في الاتصال','',e.message,null) }
+  finally{ S.busy=false }
+}
+
+function showResult(kind,name,meta,msg,student){
+  S.current=student;
+  $('rMark').className='mark '+kind; $('rMark').innerHTML=ICON[kind];
+  $('rName').textContent=name; $('rMeta').textContent=meta;
+  $('rMsg').className='smsg '+kind; $('rMsg').textContent=msg;
+  $('btnConfirm').classList.toggle('hidden', !student);
+  $('btnClose').textContent = student ? 'إلغاء' : 'متابعة المسح';
+  $('ovl').classList.remove('hidden');
+}
+function closeResult(){ $('ovl').classList.add('hidden'); S.current=null; S.lastCode=''; resumeScan() }
+
+async function confirmCurrent(){
+  const st=S.current; if(!st) return;
+  const b=$('btnConfirm'); b.disabled=true; b.innerHTML='<span class="spinner"></span> جارِ التسجيل';
+  try{
+    const j=await api({action:'confirm',dept:S.dept,pin:S.pin,id:st.id});
+    st.done=true; st.time=j.student.time;
+    S.tab='done'; document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab==='done'));
+    render(st.id);
+    toast(j.already ? 'الطالب مسجّل مسبقاً' : '✔ تمت مباشرة '+st.name);
+    closeResult();
+  }catch(e){ toast(e.message,3500) }
+  finally{ b.disabled=false; b.textContent='تأكيد المباشرة' }
+}
+
+/* ===================== الكاميرا ===================== */
+async function startScan(){
+  if(scanning) return;
+  try{
+    if(!scanner){
+      const F=Html5QrcodeSupportedFormats;
+      scanner=new Html5Qrcode('reader',{verbose:false,formatsToSupport:[F.QR_CODE,F.CODE_128,F.CODE_39,F.EAN_13,F.EAN_8,F.CODE_93,F.ITF,F.CODABAR,F.UPC_A,F.DATA_MATRIX]});
+    }
+    await scanner.start({facingMode:'environment'},{
+      fps:12,
+      qrbox:(w,h)=>({width:Math.floor(w*0.82),height:Math.floor(h*0.55)}),
+      experimentalFeatures:{useBarCodeDetectorIfSupported:true}
+    }, txt=>handleCode(txt), ()=>{});
+    scanning=true; $('scanIdle').classList.add('hidden');
+  }catch(e){
+    toast('تعذّر تشغيل الكاميرا: اسمح للموقع باستخدام الكاميرا',4000);
+  }
+}
+function pauseScan(){ try{ if(scanning) scanner.pause(true) }catch(e){} }
+function resumeScan(){ try{ if(scanning) scanner.resume() }catch(e){} }
+async function stopScan(){ try{ if(scanning){ await scanner.stop(); scanning=false; $('scanIdle').classList.remove('hidden') } }catch(e){} }
+
+/* ===================== الأحداث ===================== */
+$('btnLogin').onclick=()=>{ const d=$('selDept').value, p=$('inPin').value.trim(); if(!d||!p){ $('loginErr').textContent='اختر القسم وأدخل الرمز'; return } login(d,p) };
+$('inPin').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btnLogin').click() });
+$('btnLogout').onclick=logout;
+$('btnRefresh').onclick=()=>refresh(false);
+$('btnStart').onclick=startScan;
+$('btnManual').onclick=()=>{ const v=$('inManual').value.trim(); if(v){ S.lastCode=''; handleCode(v); $('inManual').value='' } };
+$('inManual').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btnManual').click() });
+$('btnConfirm').onclick=confirmCurrent;
+$('btnClose').onclick=closeResult;
+$('inSearch').oninput=()=>render();
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  S.tab=b.dataset.tab; document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b)); render();
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter' && !$('ovl').classList.contains('hidden') && S.current && !e.repeat) confirmCurrent();
+  if(e.key==='Escape' && !$('ovl').classList.contains('hidden')) closeResult();
+});
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) refresh(true) });
+setInterval(()=>{ if(!document.hidden && $('ovl').classList.contains('hidden')) refresh(true) },60000);
+
+/* ===================== البدء ===================== */
+(async()=>{
+  await loadDepts();
+  const d=load('mb_dept'), p=load('mb_pin');
+  if(d && p) login(d,p,true);
+})();
+</script>
+</body>
+</html>
