@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f3d5e">
 <title>مباشرة الطلبة المقبولين — كلية علوم الحاسوب والرياضيات</title>
+<link rel="preload" href="logo.jpg" as="image">
+<link rel="icon" href="logo.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -56,7 +58,7 @@
   .bar i{display:block;height:100%;background:var(--ok);width:0;transition:width .4s}
 
   /* scanner */
-  .scanwrap{position:relative;border-radius:14px;overflow:hidden;background:#0b1720;aspect-ratio:4/3}
+  .scanwrap{position:relative;border-radius:14px;overflow:hidden;background:#0b1720;aspect-ratio:1/1;max-width:420px;margin:0 auto}
   #reader{width:100%;height:100%}
   #reader video{object-fit:cover!important;width:100%!important;height:100%!important}
   .scanidle{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -92,6 +94,21 @@
   .tabs button{flex:1;padding:9px;border-radius:9px;background:transparent;font-weight:700;color:var(--muted);font-size:14.5px}
   .tabs button.on{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,.08)}
   .search{margin-bottom:10px}
+  .thead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .thead h3{font-size:16px;color:var(--navy)}
+  .thead select{width:auto;padding:7px 10px;font-size:14px;border-radius:10px}
+  .tblwrap{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .tbl{width:100%;border-collapse:collapse;font-size:15px}
+  .tbl th{background:#eef3f7;color:var(--navy);font-weight:700;font-size:13.5px;padding:9px 8px;text-align:right}
+  .tbl td{padding:10px 8px;border-top:1px solid var(--line);vertical-align:middle}
+  .tbl .c-n{width:38px;text-align:center;color:var(--muted)}
+  .tbl td.c-n{font-size:13px}
+  .tbl .c-s{width:118px;text-align:center}
+  .tbl td.nm{font-weight:600}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:13px;font-weight:700;white-space:nowrap}
+  .badge.y{background:var(--okbg);color:var(--ok)} .badge.n{background:var(--warnbg);color:var(--warn)}
+  .tbl .tm{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+  .tbl tr.new td{animation:flash 1.8s}
   .list{list-style:none}
   .list li{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid var(--line)}
   .list li:last-child{border-bottom:0}
@@ -107,12 +124,35 @@
   .toast{position:fixed;top:84px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;
     border-radius:12px;font-size:14px;z-index:60;box-shadow:0 4px 18px rgba(0,0,0,.2);max-width:90%}
   footer{text-align:center;color:var(--muted);font-size:12px;padding:16px 0 26px;letter-spacing:.3px}
+  /* splash */
+  .splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+    background:radial-gradient(circle at 50% 35%,#1a5a85,#0f3d5e 55%,#0a2a42);color:#fff;transition:opacity .45s,visibility .45s;text-align:center;padding:20px}
+  .splash.out{opacity:0;visibility:hidden}
+  .splash .slogo{width:132px;height:132px;border-radius:50%;background:#fff;padding:5px;
+    box-shadow:0 0 0 8px rgba(255,255,255,.12),0 16px 40px rgba(0,0,0,.35);animation:pulse 1.8s ease-in-out infinite}
+  .splash .slogo img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+  @keyframes pulse{50%{transform:scale(1.04);box-shadow:0 0 0 14px rgba(255,255,255,.06),0 16px 40px rgba(0,0,0,.35)}}
+  .splash h2{font-size:22px;font-weight:800;margin-top:6px}
+  .splash .ssub{font-size:14px;opacity:.8;margin-top:-10px}
+  .splash .sload{display:flex;align-items:center;gap:10px;font-size:15px;margin-top:10px;background:rgba(255,255,255,.1);padding:8px 18px;border-radius:30px}
+  .splash .sfoot{position:absolute;bottom:22px;font-size:12px;opacity:.6;letter-spacing:.5px}
+  .llogo{width:84px;height:84px;border-radius:50%;display:block;margin:0 auto 10px;object-fit:cover;box-shadow:0 4px 14px rgba(15,61,94,.2)}
+  .login h2,.login .sub{text-align:center}
   .spinner{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;
     display:inline-block;animation:spin .8s linear infinite;vertical-align:middle}
   @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
+
+<!-- ========== واجهة البداية ========== -->
+<div class="splash" id="splash">
+  <div class="slogo"><img src="logo.jpg" alt="شعار الكلية"></div>
+  <h2>كلية علوم الحاسوب والرياضيات</h2>
+  <div class="ssub">منظومة مباشرة الطلبة المقبولين</div>
+  <div class="sload"><span class="spinner"></span> جارِ تحميل البيانات…</div>
+  <div class="sfoot">designed by OMAR INAAM</div>
+</div>
 
 <header>
   <div class="hrow">
@@ -128,6 +168,7 @@
 <main>
   <!-- ========== تسجيل الدخول ========== -->
   <section id="vLogin" class="login card">
+    <img class="llogo" src="logo.jpg" alt="">
     <h2>دخول مقرر القسم</h2>
     <p class="sub">اختر القسم وأدخل الرمز الخاص به</p>
     <label for="selDept">القسم</label>
@@ -152,24 +193,22 @@
         <div id="reader"></div>
         <div class="scanidle" id="scanIdle">
           <div class="big">📷</div>
-          <div>اضغط لتشغيل الكاميرا وقراءة باركود الطالب</div>
+          <div>اضغط لتشغيل الكاميرا وقراءة رمز QR للطالب</div>
           <button class="startbtn" id="btnStart">تشغيل الماسح</button>
         </div>
       </div>
-      <div class="scanbar">
-        <input id="inManual" type="text" inputmode="numeric" placeholder="أو أدخل رقم الطالب يدوياً">
-        <button id="btnManual">بحث</button>
-      </div>
-      <p class="hint">يدعم الباركود والـ QR · يمكن أيضاً استخدام قارئ باركود موصول بالحاسبة</p>
+      <p class="hint">وجّه الكاميرا نحو رمز QR الموجود في بطاقة الطالب</p>
     </div>
 
     <div class="card">
-      <div class="tabs">
-        <button class="on" data-tab="done">الطلبة المباشرون</button>
-        <button data-tab="rem">لم يباشروا بعد</button>
+      <div class="thead"><h3>قائمة طلبة القسم</h3>
+        <select id="fStatus"><option value="">الكل</option><option value="done">المباشرون</option><option value="rem">غير المباشرين</option></select>
       </div>
-      <input class="search" id="inSearch" type="text" placeholder="بحث بالاسم أو الرقم…">
-      <ul class="list" id="list"></ul>
+      <input class="search" id="inSearch" type="text" placeholder="بحث بالاسم…">
+      <div class="tblwrap"><table class="tbl">
+        <thead><tr><th class="c-n">ت</th><th>اسم الطالب</th><th class="c-s">الحالة</th></tr></thead>
+        <tbody id="list"></tbody>
+      </table></div>
     </div>
   </section>
 
@@ -276,18 +315,19 @@ function render(highlightId){
   const tot=S.students.length, done=S.students.filter(s=>s.done).length;
   $('stTotal').textContent=tot; $('stDone').textContent=done; $('stRem').textContent=tot-done;
   $('prog').style.width = tot? (done/tot*100)+'%' : '0';
-  const q = $('inSearch').value.trim();
-  let arr = S.students.filter(s => S.tab==='done' ? s.done : !s.done);
-  if(q) arr = arr.filter(s => s.name.includes(q) || String(s.id).includes(q));
-  if(S.tab==='done') arr.sort((a,b)=> (b.time||'').localeCompare(a.time||''));
-  else arr.sort((a,b)=> (+a.id||0)-(+b.id||0));
-  $('list').innerHTML = arr.length ? arr.map(s=>`
-    <li class="${highlightId && normId(s.id)===normId(highlightId)?'new':''}">
-      <span class="num">${esc(s.id)}</span>
-      <span class="nm">${esc(s.name)}</span>
-      ${s.done?`<span class="tm">${esc(s.time||'')}</span><span class="chk">✔</span>`:''}
-    </li>`).join('')
-    : `<li class="empty">${S.tab==='done'?'لم يباشر أي طالب بعد':'جميع الطلبة باشروا 🎉'}</li>`;
+  const q = $('inSearch').value.trim(), f = $('fStatus').value;
+  let arr = S.students.slice().sort((a,b)=> (+a.id||0)-(+b.id||0));
+  if(f) arr = arr.filter(s => f==='done' ? s.done : !s.done);
+  if(q) arr = arr.filter(s => s.name.includes(q));
+  $('list').innerHTML = arr.length ? arr.map((s,i)=>`
+    <tr class="${highlightId && normId(s.id)===normId(highlightId)?'new':''}">
+      <td class="c-n">${i+1}</td>
+      <td class="nm">${esc(s.name)}</td>
+      <td class="c-s">${s.done
+        ? `<span class="badge y">✔ مباشر</span><span class="tm">${esc(s.time||'')}</span>`
+        : `<span class="badge n">غير مباشر</span>`}</td>
+    </tr>`).join('')
+    : `<tr><td colspan="3" class="empty">لا توجد نتائج</td></tr>`;
 }
 
 /* ===================== قراءة الكود ===================== */
@@ -346,7 +386,6 @@ async function confirmCurrent(){
   try{
     const j=await api({action:'confirm',dept:S.dept,pin:S.pin,id:st.id});
     st.done=true; st.time=j.student.time;
-    S.tab='done'; document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab==='done'));
     render(st.id);
     toast(j.already ? 'الطالب مسجّل مسبقاً' : '✔ تمت مباشرة '+st.name);
     closeResult();
@@ -360,11 +399,12 @@ async function startScan(){
   try{
     if(!scanner){
       const F=Html5QrcodeSupportedFormats;
-      scanner=new Html5Qrcode('reader',{verbose:false,formatsToSupport:[F.QR_CODE,F.CODE_128,F.CODE_39,F.EAN_13,F.EAN_8,F.CODE_93,F.ITF,F.CODABAR,F.UPC_A,F.DATA_MATRIX]});
+      scanner=new Html5Qrcode('reader',{verbose:false,formatsToSupport:[F.QR_CODE]});
     }
     await scanner.start({facingMode:'environment'},{
       fps:12,
-      qrbox:(w,h)=>({width:Math.floor(w*0.82),height:Math.floor(h*0.55)}),
+      qrbox:(w,h)=>{ const s=Math.floor(Math.min(w,h)*0.72); return {width:s,height:s} },
+      aspectRatio:1,
       experimentalFeatures:{useBarCodeDetectorIfSupported:true}
     }, txt=>handleCode(txt), ()=>{});
     scanning=true; $('scanIdle').classList.add('hidden');
@@ -382,14 +422,10 @@ $('inPin').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btnLogin').cli
 $('btnLogout').onclick=logout;
 $('btnRefresh').onclick=()=>refresh(false);
 $('btnStart').onclick=startScan;
-$('btnManual').onclick=()=>{ const v=$('inManual').value.trim(); if(v){ S.lastCode=''; handleCode(v); $('inManual').value='' } };
-$('inManual').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btnManual').click() });
 $('btnConfirm').onclick=confirmCurrent;
 $('btnClose').onclick=closeResult;
 $('inSearch').oninput=()=>render();
-document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
-  S.tab=b.dataset.tab; document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b)); render();
-});
+$('fStatus').onchange=()=>render();
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter' && !$('ovl').classList.contains('hidden') && S.current && !e.repeat) confirmCurrent();
   if(e.key==='Escape' && !$('ovl').classList.contains('hidden')) closeResult();
@@ -398,10 +434,15 @@ document.addEventListener('visibilitychange',()=>{ if(!document.hidden) refresh(
 setInterval(()=>{ if(!document.hidden && $('ovl').classList.contains('hidden')) refresh(true) },60000);
 
 /* ===================== البدء ===================== */
+// أمان: إخفاء واجهة البداية بعد 12 ثانية مهما حدث (مثلاً عند ضعف الإنترنت)
+setTimeout(()=>{ const s=$('splash'); if(s) s.classList.add('out') },12000);
 (async()=>{
+  const t0=Date.now();
   await loadDepts();
   const d=load('mb_dept'), p=load('mb_pin');
-  if(d && p) login(d,p,true);
+  if(d && p) await login(d,p,true);
+  const wait=Math.max(0,1400-(Date.now()-t0));   // إظهار واجهة البداية لمدة قصيرة على الأقل
+  setTimeout(()=>{ $('splash').classList.add('out'); setTimeout(()=>$('splash').remove(),500) }, wait);
 })();
 </script>
 </body>
