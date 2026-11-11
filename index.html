@@ -42,6 +42,9 @@
   select,input[type=text],input[type=password],input[type=tel]{width:100%;padding:12px 14px;border:1.5px solid var(--line);
     border-radius:12px;background:#fff;outline:none}
   select:focus,input:focus{border-color:var(--navy2)}
+  .seg{display:flex;gap:8px}
+  .seg button{flex:1;padding:12px 6px;border-radius:12px;border:1.5px solid var(--line);background:#fff;color:var(--muted);font-weight:700;font-size:14.5px;transition:.15s}
+  .seg button.on{border-color:var(--navy);background:var(--navy);color:#fff}
   input.pin{-webkit-text-security:disc;text-security:disc;letter-spacing:3px}
   .btn{width:100%;padding:13px;border-radius:12px;font-size:16px;font-weight:700;margin-top:18px;background:var(--navy);color:#fff}
   .btn:disabled{opacity:.6}
@@ -168,9 +171,14 @@
   <section id="vLogin" class="login card">
     <span class="lg llogo"></span>
     <h2>دخول مقرر القسم</h2>
-    <p class="sub">اختر القسم وأدخل الرمز الخاص به</p>
+    <p class="sub">اختر نوع الدراسة والقسم ثم أدخل الرمز</p>
+    <label>الدراسة</label>
+    <div class="seg" id="segStudy">
+      <button type="button" data-v="صباحي" class="on">☀️ الدراسة الصباحية</button>
+      <button type="button" data-v="مسائي">🌙 الدراسة المسائية</button>
+    </div>
     <label for="selDept">القسم</label>
-    <select id="selDept"><option value="">جارِ تحميل الأقسام…</option></select>
+    <select id="selDept"></select>
     <label for="inPin">الرمز السري</label>
     <input id="inPin" class="pin" type="text" inputmode="numeric" name="mb-code-x" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-form-type="other" placeholder="••••">
     <button class="btn" id="btnLogin">دخول</button>
@@ -265,33 +273,31 @@ function beep(ok){
 }
 
 /* ===================== الدخول ===================== */
-function fillDepts(list){
+const DEPTS = {
+  'صباحي': ['الامن السيبراني','الذكاء الاصطناعي','تكنولوجيا الاعلام الرقمي','علوم الحاسوب','الرياضيات','البرمجيات','الشبكات','الإحصاء والمعلوماتية','بحوث العمليات والتقنيات الذكائية'],
+  'مسائي': ['الامن السيبراني','الذكاء الاصطناعي','علوم الحاسوب']
+};
+const studyLabel = s => s==='مسائي' ? 'الدراسة المسائية' : 'الدراسة الصباحية';
+function curStudy(){ const b=document.querySelector('#segStudy button.on'); return b ? b.dataset.v : 'صباحي' }
+function setStudy(v){
+  document.querySelectorAll('#segStudy button').forEach(b=>b.classList.toggle('on', b.dataset.v===v));
   const sel=$('selDept'), cur=sel.value||load('mb_dept')||'';
-  sel.innerHTML = '<option value="">— اختر القسم —</option>' + list.map(d=>`<option>${esc(d)}</option>`).join('');
-  if(cur) sel.value = cur;
-}
-function cachedDepts(){ try{ return JSON.parse(load('mb_depts')||'null') }catch(e){ return null } }
-async function loadDepts(){
-  try{
-    const j = await api({action:'depts'});
-    fillDepts(j.depts); store('mb_depts', JSON.stringify(j.depts)); $('loginErr').textContent='';
-  }catch(e){
-    if(!cachedDepts()){ $('selDept').innerHTML = '<option value="">تعذّر تحميل الأقسام</option>'; $('loginErr').textContent = e.message; }
-  }
+  sel.innerHTML = '<option value="">— اختر القسم —</option>' + DEPTS[v].map(d=>`<option>${esc(d)}</option>`).join('');
+  if(DEPTS[v].includes(cur)) sel.value = cur;
 }
 function enterMain(dept){
   $('vLogin').classList.add('hidden'); $('vMain').classList.remove('hidden');
-  $('hsub').textContent = 'قسم ' + dept;
+  $('hsub').textContent = 'قسم ' + dept + ' — ' + studyLabel(S.study);
   loadScannerLib().catch(()=>{});   // تحميل مسبق بالخلفية
 }
 
-async function login(dept,pin,silent){
+async function login(dept,study,pin,silent){
   const b=$('btnLogin'); b.disabled=true; b.innerHTML='<span class="spinner"></span>';
   $('loginErr').textContent='';
   try{
-    const j = await api({action:'login',dept,pin});
-    S.dept=dept; S.pin=pin; setStudents(j.students);
-    store('mb_dept',dept);
+    const j = await api({action:'login',dept,study,pin});
+    S.dept=dept; S.study=study; S.pin=pin; setStudents(j.students);
+    store('mb_dept',dept); store('mb_study',study);
     enterMain(dept);
   }catch(e){
     if(!silent) $('loginErr').textContent = e.message;
@@ -301,7 +307,7 @@ async function login(dept,pin,silent){
 }
 
 function logout(){
-  stopScan(); S.dept=''; S.pin=''; S.students=[]; S.pending.clear();
+  stopScan(); S.dept=''; S.study=''; S.pin=''; S.students=[]; S.pending.clear();
   $('vMain').classList.add('hidden'); $('vLogin').classList.remove('hidden');
   $('hsub').textContent='كلية علوم الحاسوب والرياضيات'; $('inPin').value='';
 }
@@ -316,7 +322,7 @@ S.pendingTimes = {};
 function nowStr(){ const d=new Date(), p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}` }
 async function refresh(quiet){
   if(!S.dept) return;
-  try{ const j=await api({action:'list',dept:S.dept,pin:S.pin}); setStudents(j.students); if(!quiet) toast('تم التحديث') }
+  try{ const j=await api({action:'list',dept:S.dept,study:S.study,pin:S.pin}); setStudents(j.students); if(!quiet) toast('تم التحديث') }
   catch(e){ if(!quiet) toast(e.message) }
 }
 
@@ -358,18 +364,18 @@ async function handleCode(text){
   if(st){
     if(st.done){ beep(false); return showResult('warn', st.name, 'رقم '+st.id, 'باشر مسبقاً بتاريخ '+(st.time||''), null); }
     beep(true);
-    return showResult('ok', st.name, 'رقم '+st.id+' · قسم '+S.dept, 'الطالب مقبول في قسمكم', st);
+    return showResult('ok', st.name, 'قسم '+S.dept+' · '+studyLabel(S.study), 'الطالب مقبول في قسمكم', st);
   }
   // ليس في قائمة القسم — نسأل الخادم عن قسمه
   S.busy=true;
   try{
     let found=null;
     for(const c of cands.slice(0,4)){
-      const j=await api({action:'lookup',dept:S.dept,pin:S.pin,id:c});
+      const j=await api({action:'lookup',dept:S.dept,study:S.study,pin:S.pin,id:c});
       if(j.found){ found=j.student; break }
     }
     beep(false);
-    if(found) showResult('bad', found.name, 'رقم '+found.id, 'هذا الطالب مقبول في قسم: '+found.dept, null);
+    if(found) showResult('bad', found.name, 'رقم '+found.id, 'هذا الطالب مقبول في قسم: '+found.dept+(found.study?' — '+studyLabel(found.study):''), null);
     else showResult('bad', 'غير موجود', 'المحتوى المقروء: '+String(text).slice(0,40), 'لا يوجد طالب بهذا الرقم في قائمة المسجلين', null);
   }catch(e){ showResult('bad','خطأ في الاتصال','',e.message,null) }
   finally{ S.busy=false }
@@ -397,7 +403,7 @@ function confirmCurrent(){
 }
 async function saveConfirm(st, key, attempt){
   try{
-    const j=await api({action:'confirm',dept:S.dept,pin:S.pin,id:st.id});
+    const j=await api({action:'confirm',dept:S.dept,study:S.study,pin:S.pin,id:st.id});
     S.pending.delete(key); delete S.pendingTimes[key];
     if(j.student && j.student.time){ st.time=j.student.time; render() }
   }catch(e){
@@ -444,7 +450,8 @@ function resumeScan(){ try{ if(scanning) scanner.resume() }catch(e){} }
 async function stopScan(){ try{ if(scanning){ await scanner.stop(); scanning=false; $('scanIdle').classList.remove('hidden') } }catch(e){} }
 
 /* ===================== الأحداث ===================== */
-$('btnLogin').onclick=()=>{ const d=$('selDept').value, p=$('inPin').value.trim(); if(!d||!p){ $('loginErr').textContent='اختر القسم وأدخل الرمز'; return } login(d,p) };
+$('btnLogin').onclick=()=>{ const d=$('selDept').value, p=$('inPin').value.trim(); if(!d||!p){ $('loginErr').textContent='اختر القسم وأدخل الرمز'; return } login(d,curStudy(),p) };
+document.querySelectorAll('#segStudy button').forEach(b=>b.onclick=()=>{ setStudy(b.dataset.v); $('loginErr').textContent='' });
 $('inPin').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btnLogin').click() });
 $('btnStart').onclick=startScan;
 $('btnConfirm').onclick=confirmCurrent;
@@ -464,9 +471,10 @@ function hideSplash(){ const s=$('splash'); if(!s) return; s.classList.add('out'
 (async()=>{
   const t0=Date.now(), minShow=ms=>new Promise(r=>setTimeout(r,Math.max(0,ms-(Date.now()-t0))));
   store('mb_pin',null); store('mb_students',null);        // حذف أي رمز محفوظ من نسخة سابقة
-  const cd=cachedDepts();
-  if(cd){ fillDepts(cd); await minShow(700); hideSplash(); loadDepts(); }
-  else  { await loadDepts(); await minShow(700); hideSplash(); }
+  store('mb_depts',null);
+  setStudy(load('mb_study')==='مسائي' ? 'مسائي' : 'صباحي');
+  api({action:'ping'}).catch(()=>{});        // تسخين الخادم مسبقاً لتسريع أول دخول
+  await minShow(900); hideSplash();
 })();
 </script>
 </body>
