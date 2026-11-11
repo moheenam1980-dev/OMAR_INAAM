@@ -42,6 +42,7 @@
   select,input[type=text],input[type=password],input[type=tel]{width:100%;padding:12px 14px;border:1.5px solid var(--line);
     border-radius:12px;background:#fff;outline:none}
   select:focus,input:focus{border-color:var(--navy2)}
+  input.pin{-webkit-text-security:disc;text-security:disc;letter-spacing:3px}
   .btn{width:100%;padding:13px;border-radius:12px;font-size:16px;font-weight:700;margin-top:18px;background:var(--navy);color:#fff}
   .btn:disabled{opacity:.6}
   .err{color:var(--bad);font-size:14px;margin-top:10px;min-height:20px}
@@ -159,8 +160,6 @@
       <h1>مباشرة الطلبة المقبولين</h1>
       <p id="hsub">كلية علوم الحاسوب والرياضيات</p>
     </div>
-    <button class="iconbtn hidden" id="btnRefresh" title="تحديث">↻ تحديث</button>
-    <button class="iconbtn hidden" id="btnLogout">خروج</button>
   </div>
 </header>
 
@@ -173,19 +172,13 @@
     <label for="selDept">القسم</label>
     <select id="selDept"><option value="">جارِ تحميل الأقسام…</option></select>
     <label for="inPin">الرمز السري</label>
-    <input id="inPin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••">
+    <input id="inPin" class="pin" type="text" inputmode="numeric" name="mb-code-x" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-form-type="other" placeholder="••••">
     <button class="btn" id="btnLogin">دخول</button>
     <div class="err" id="loginErr"></div>
   </section>
 
   <!-- ========== الشاشة الرئيسية ========== -->
   <section id="vMain" class="hidden">
-    <div class="stats">
-      <div class="stat"><b id="stTotal">0</b><span>المقبولون</span></div>
-      <div class="stat ok"><b id="stDone">0</b><span>باشروا</span></div>
-      <div class="stat rem"><b id="stRem">0</b><span>المتبقون</span></div>
-    </div>
-    <div class="bar"><i id="prog"></i></div>
 
     <div class="card">
       <div class="scanwrap">
@@ -200,9 +193,7 @@
     </div>
 
     <div class="card">
-      <div class="thead"><h3>قائمة طلبة القسم</h3>
-        <select id="fStatus"><option value="">الكل</option><option value="done">المباشرون</option><option value="rem">غير المباشرين</option></select>
-      </div>
+      <div class="thead"><h3>قائمة طلبة القسم</h3></div>
       <input class="search" id="inSearch" type="text" placeholder="بحث بالاسم…">
       <div class="tblwrap"><table class="tbl">
         <thead><tr><th class="c-n">ت</th><th>اسم الطالب</th><th class="c-s">الحالة</th></tr></thead>
@@ -255,13 +246,22 @@ async function api(params){
   return j;
 }
 
+let AC=null;
+function audio(){ try{ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume() }catch(e){} return AC }
+function tone(freq,start,dur,type){
+  const c=audio(); if(!c) return;
+  const o=c.createOscillator(), g=c.createGain(), t0=c.currentTime+start;
+  o.type=type; o.frequency.value=freq; o.connect(g); g.connect(c.destination);
+  g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(1,t0+0.01);
+  g.gain.setValueAtTime(1,t0+dur-0.02); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  o.start(t0); o.stop(t0+dur+0.02);
+}
 function beep(ok){
   try{
-    const c=new (window.AudioContext||window.webkitAudioContext)(), o=c.createOscillator(), g=c.createGain();
-    o.frequency.value = ok?880:320; o.connect(g); g.connect(c.destination); g.gain.value=.12;
-    o.start(); o.stop(c.currentTime+(ok?.12:.3));
+    if(ok){ tone(2000,0,.14,'square'); tone(2000,.22,.14,'square') }      // بيب بيب
+    else  { tone(300,0,.45,'sawtooth') }                                   // نغمة خطأ منخفضة
   }catch(e){}
-  try{ navigator.vibrate && navigator.vibrate(ok?80:[60,60,60]) }catch(e){}
+  try{ navigator.vibrate && navigator.vibrate(ok?[90,70,90]:[300]) }catch(e){}
 }
 
 /* ===================== الدخول ===================== */
@@ -281,7 +281,6 @@ async function loadDepts(){
 }
 function enterMain(dept){
   $('vLogin').classList.add('hidden'); $('vMain').classList.remove('hidden');
-  $('btnLogout').classList.remove('hidden'); $('btnRefresh').classList.remove('hidden');
   $('hsub').textContent = 'قسم ' + dept;
   loadScannerLib().catch(()=>{});   // تحميل مسبق بالخلفية
 }
@@ -292,19 +291,18 @@ async function login(dept,pin,silent){
   try{
     const j = await api({action:'login',dept,pin});
     S.dept=dept; S.pin=pin; setStudents(j.students);
-    store('mb_dept',dept); store('mb_pin',pin);
+    store('mb_dept',dept);
     enterMain(dept);
   }catch(e){
     if(!silent) $('loginErr').textContent = e.message;
     // الرمز خاطئ فقط يُلغي الدخول المحفوظ — انقطاع الإنترنت لا يُخرج المقرر
-    if(e.data){ store('mb_pin',null); if(silent && S.dept) { logout(); $('loginErr').textContent = e.message } }
+    if(e.data && silent && S.dept){ logout(); $('loginErr').textContent = e.message }
   }finally{ b.disabled=false; b.textContent='دخول' }
 }
 
 function logout(){
-  stopScan(); store('mb_pin',null); store('mb_students',null); S.dept=''; S.pin=''; S.students=[]; S.pending.clear();
+  stopScan(); S.dept=''; S.pin=''; S.students=[]; S.pending.clear();
   $('vMain').classList.add('hidden'); $('vLogin').classList.remove('hidden');
-  $('btnLogout').classList.add('hidden'); $('btnRefresh').classList.add('hidden');
   $('hsub').textContent='كلية علوم الحاسوب والرياضيات'; $('inPin').value='';
 }
 
@@ -313,7 +311,6 @@ function setStudents(list){
   // عمليات تأكيد ما زالت في الطريق إلى الشيت تبقى ظاهرة كمباشر
   list.forEach(s=>{ const p=S.pendingTimes && S.pending.has(normId(s.id)); if(p && !s.done){ s.done=true; s.time=S.pendingTimes[normId(s.id)]||'' } });
   S.students = list; S.byId = new Map(list.map(s=>[normId(s.id),s])); render();
-  store('mb_students', JSON.stringify(list));
 }
 S.pendingTimes = {};
 function nowStr(){ const d=new Date(), p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}` }
@@ -324,10 +321,7 @@ async function refresh(quiet){
 }
 
 function render(highlightId){
-  const tot=S.students.length, done=S.students.filter(s=>s.done).length;
-  $('stTotal').textContent=tot; $('stDone').textContent=done; $('stRem').textContent=tot-done;
-  $('prog').style.width = tot? (done/tot*100)+'%' : '0';
-  const q = $('inSearch').value.trim(), f = $('fStatus').value;
+  const q = $('inSearch').value.trim(), f = '';
   let arr = S.students.slice().sort((a,b)=> (+a.id||0)-(+b.id||0));
   if(f) arr = arr.filter(s => f==='done' ? s.done : !s.done);
   if(q) arr = arr.filter(s => s.name.includes(q));
@@ -362,7 +356,7 @@ async function handleCode(text){
   pauseScan();
 
   if(st){
-    if(st.done) return showResult('warn', st.name, 'رقم '+st.id, 'باشر مسبقاً بتاريخ '+(st.time||''), null);
+    if(st.done){ beep(false); return showResult('warn', st.name, 'رقم '+st.id, 'باشر مسبقاً بتاريخ '+(st.time||''), null); }
     beep(true);
     return showResult('ok', st.name, 'رقم '+st.id+' · قسم '+S.dept, 'الطالب مقبول في قسمكم', st);
   }
@@ -396,7 +390,7 @@ function confirmCurrent(){
   const st=S.current; if(!st) return;
   const key=normId(st.id);
   st.done=true; st.time=nowStr(); S.pending.add(key); S.pendingTimes[key]=st.time;
-  render(st.id); store('mb_students', JSON.stringify(S.students));
+  render(st.id);
   toast('✔ تمت مباشرة '+st.name);
   closeResult();
   saveConfirm(st, key, 0);
@@ -409,7 +403,7 @@ async function saveConfirm(st, key, attempt){
   }catch(e){
     if(!e.data && attempt<3) return setTimeout(()=>saveConfirm(st,key,attempt+1), 2500*(attempt+1));  // إعادة المحاولة عند ضعف الإنترنت
     S.pending.delete(key); delete S.pendingTimes[key];
-    st.done=false; st.time=''; render(); store('mb_students', JSON.stringify(S.students));
+    st.done=false; st.time=''; render();
     beep(false); toast('⚠ لم تُحفظ مباشرة '+st.name+' — أعد المسح. ('+e.message+')', 6000);
   }
 }
@@ -426,6 +420,7 @@ function loadScannerLib(){
 }
 async function startScan(){
   if(scanning) return;
+  audio();   // تفعيل الصوت بضغطة المستخدم (مطلوب في الموبايل)
   const sb=$('btnStart'); sb.disabled=true; sb.textContent='جارِ التشغيل…';
   try{ await loadScannerLib() }catch(e){ sb.disabled=false; sb.textContent='تشغيل الماسح'; return toast('تعذّر تحميل الماسح — تحقق من الإنترنت',4000) }
   try{
@@ -451,13 +446,10 @@ async function stopScan(){ try{ if(scanning){ await scanner.stop(); scanning=fal
 /* ===================== الأحداث ===================== */
 $('btnLogin').onclick=()=>{ const d=$('selDept').value, p=$('inPin').value.trim(); if(!d||!p){ $('loginErr').textContent='اختر القسم وأدخل الرمز'; return } login(d,p) };
 $('inPin').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btnLogin').click() });
-$('btnLogout').onclick=logout;
-$('btnRefresh').onclick=()=>refresh(false);
 $('btnStart').onclick=startScan;
 $('btnConfirm').onclick=confirmCurrent;
 $('btnClose').onclick=closeResult;
 $('inSearch').oninput=()=>render();
-$('fStatus').onchange=()=>render();
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter' && !$('ovl').classList.contains('hidden') && S.current && !e.repeat) confirmCurrent();
   if(e.key==='Escape' && !$('ovl').classList.contains('hidden')) closeResult();
@@ -471,23 +463,10 @@ setTimeout(()=>{ const s=$('splash'); if(s) s.classList.add('out') },12000);
 function hideSplash(){ const s=$('splash'); if(!s) return; s.classList.add('out'); setTimeout(()=>s.remove(),500) }
 (async()=>{
   const t0=Date.now(), minShow=ms=>new Promise(r=>setTimeout(r,Math.max(0,ms-(Date.now()-t0))));
-  const d=load('mb_dept'), p=load('mb_pin'), cd=cachedDepts();
-  let cs=null; try{ cs=JSON.parse(load('mb_students')||'null') }catch(e){}
-  if(cd) fillDepts(cd);
-
-  if(d && p && cs){
-    // دخول سابق: عرض فوري من البيانات المحفوظة ثم تحديثها بالخلفية
-    S.dept=d; S.pin=p; setStudents(cs); enterMain(d);
-    await minShow(700); hideSplash();
-    login(d,p,true); loadDepts();
-  }else if(d && p){
-    await Promise.all([login(d,p,true), loadDepts()]);
-    await minShow(700); hideSplash();
-  }else if(cd){
-    await minShow(700); hideSplash(); loadDepts();
-  }else{
-    await loadDepts(); await minShow(700); hideSplash();
-  }
+  store('mb_pin',null); store('mb_students',null);        // حذف أي رمز محفوظ من نسخة سابقة
+  const cd=cachedDepts();
+  if(cd){ fillDepts(cd); await minShow(700); hideSplash(); loadDepts(); }
+  else  { await loadDepts(); await minShow(700); hideSplash(); }
 })();
 </script>
 </body>
