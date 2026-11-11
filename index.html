@@ -375,7 +375,12 @@ async function handleCode(text){
       if(j.found){ found=j.student; break }
     }
     beep(false);
-    if(found) showResult('bad', found.name, 'رقم '+found.id, 'هذا الطالب مقبول في قسم: '+found.dept+(found.study?' — '+studyLabel(found.study):''), null);
+    if(found){
+      const otherStudy = found.study && found.study !== S.study;
+      showResult('bad', found.name, 'قسم '+found.dept+(found.study?' · '+studyLabel(found.study):''),
+        otherStudy ? '✖ هذا الطالب من '+studyLabel(found.study)+' — لا يمكن مباشرته في '+studyLabel(S.study)
+                   : '✖ هذا الطالب مقبول في قسم آخر: '+found.dept, null);
+    }
     else showResult('bad', 'غير موجود', 'المحتوى المقروء: '+String(text).slice(0,40), 'لا يوجد طالب بهذا الرقم في قائمة المسجلين', null);
   }catch(e){ showResult('bad','خطأ في الاتصال','',e.message,null) }
   finally{ S.busy=false }
