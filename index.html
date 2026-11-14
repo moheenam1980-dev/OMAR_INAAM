@@ -248,8 +248,14 @@ function toast(msg,ms=2600){ const t=document.createElement('div'); t.className=
 
 async function api(params){
   if(!API_URL || API_URL.indexOf('http')!==0) throw new Error('لم يتم ضبط رابط Apps Script في ملف config.js');
-  const r = await fetch(API_URL+'?'+new URLSearchParams(params), {redirect:'follow'});
-  const j = await r.json();
+  const ac=new AbortController(), tm=setTimeout(()=>ac.abort(),25000);   // لا انتظار إلى ما لا نهاية عند ضعف الشبكة
+  let j;
+  try{
+    const r = await fetch(API_URL+'?'+new URLSearchParams(params), {redirect:'follow', signal:ac.signal});
+    j = await r.json();
+  }catch(err){
+    throw new Error(err && err.name==='AbortError' ? 'انتهت مهلة الاتصال — تحقق من الإنترنت' : 'تعذّر الاتصال بالخادم — تحقق من الإنترنت');
+  }finally{ clearTimeout(tm) }
   if(!j.ok && j.error) { const e=new Error(j.error); e.data=j; throw e; }
   return j;
 }
@@ -414,7 +420,8 @@ async function saveConfirm(st, key, attempt){
   }catch(e){
     if(!e.data && attempt<3) return setTimeout(()=>saveConfirm(st,key,attempt+1), 2500*(attempt+1));  // إعادة المحاولة عند ضعف الإنترنت
     S.pending.delete(key); delete S.pendingTimes[key];
-    st.done=false; st.time=''; render();
+    const cur=(S.byId&&S.byId.get(key))||st;   // الكائن الحالي (قد يكون استُبدل بعد تحديث تلقائي)
+    cur.done=false; cur.time=''; st.done=false; st.time=''; render();
     beep(false); toast('⚠ لم تُحفظ مباشرة '+st.name+' — أعد المسح. ('+e.message+')', 6000);
   }
 }
