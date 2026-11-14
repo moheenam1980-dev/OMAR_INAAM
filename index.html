@@ -361,6 +361,8 @@ async function handleCode(text){
   if(S.busy || !$('ovl').classList.contains('hidden')) return;
   const now=Date.now();
   if(text===S.lastCode && now-S.lastAt<2500) return;
+  // نفس البطاقة ما زالت أمام الكاميرا بعد إغلاق النتيجة: تجاهل صامت حتى تُبعد عن الكاميرا
+  if(text===S.quietCode && now<S.quietUntil){ S.quietUntil=now+1500; return }
   S.lastCode=text; S.lastAt=now;
 
   const cands=candidates(text);
@@ -401,7 +403,7 @@ function showResult(kind,name,meta,msg,student){
   $('btnClose').textContent = student ? 'إلغاء' : 'متابعة المسح';
   $('ovl').classList.remove('hidden');
 }
-function closeResult(){ $('ovl').classList.add('hidden'); S.current=null; S.lastCode=''; resumeScan() }
+function closeResult(){ $('ovl').classList.add('hidden'); S.current=null; S.quietCode=S.lastCode; S.quietUntil=Date.now()+2500; S.lastCode=''; resumeScan() }
 
 function confirmCurrent(){
   const st=S.current; if(!st) return;
